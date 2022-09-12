@@ -15,6 +15,7 @@
             <property name="javax.jdo.option.ConnectionURL" value="jdbc:h2:mem:nucleus"/>
             <property name="javax.jdo.option.ConnectionUserName" value="sa"/>
             <property name="javax.jdo.option.ConnectionPassword" value=""/>
+            <property name="datanucleus.multithreaded" value="true"/>
 
             <property name="datanucleus.schema.autoCreateAll" value="true"/>
             <property name="datanucleus.schema.generateDatabase.mode" value="drop-and-create"/>

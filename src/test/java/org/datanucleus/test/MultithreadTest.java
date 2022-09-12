@@ -1,135 +1,52 @@
 package org.datanucleus.test;
 
-import java.util.*;
-import org.junit.*;
-import javax.jdo.*;
+import org.junit.Test;
 
-import static org.junit.Assert.*;
-import mydomain.model.*;
-import org.datanucleus.util.NucleusLogger;
+import javax.jdo.JDOHelper;
+import javax.jdo.PersistenceManager;
+import javax.jdo.PersistenceManagerFactory;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
-public class MultithreadTest
-{
-    // Enable this if using this test
-//    @Test
-    public void testMulti()
-    {
-        NucleusLogger.GENERAL.info(">> test START");
+public class MultithreadTest {
+
+    @Test
+    public void testMulti() throws InterruptedException, ExecutionException {
         final PersistenceManagerFactory pmf = JDOHelper.getPersistenceManagerFactory("MyTest");
 
-        try
-        {
-            // Persist some data
-            NucleusLogger.GENERAL.debug(">> Persisting data");
-            PersistenceManager pm = pmf.getPersistenceManager();
-            Transaction tx = pm.currentTransaction();
-            try
-            {
-                tx.begin();
+        final ExecutorService es = Executors.newFixedThreadPool(40);
 
-                // [Add persistence of sample data for the test]
-
-                tx.commit();
-            }
-            catch (Throwable thr)
-            {
-                NucleusLogger.GENERAL.error("Exception in test", thr);
-                fail("Failed test : " + thr.getMessage());
-            }
-            finally
-            {
-                if (tx.isActive())
-                {
-                    tx.rollback();
-                }
-                pm.close();
-            }
-            NucleusLogger.GENERAL.debug(">> Persisted data");
-
-            // Create the Threads
-            int THREAD_SIZE = 500;
-            final String[] threadErrors = new String[THREAD_SIZE];
-            Thread[] threads = new Thread[THREAD_SIZE];
-            for (int i = 0; i < THREAD_SIZE; i++)
-            {
-                final int threadNo = i;
-                threads[i] = new Thread(new Runnable()
-                {
-                    public void run()
-                    {
-                        String errorMsg = performTest(pmf);
-                        threadErrors[threadNo] = errorMsg;
-                    }
-                });
-            }
-
-            // Run the threads
-            NucleusLogger.GENERAL.debug(">> Starting threads");
-            for (int i = 0; i < THREAD_SIZE; i++)
-            {
-                threads[i].start();
-            }
-            for (int i = 0; i < THREAD_SIZE; i++)
-            {
-                try
-                {
-                    threads[i].join();
-                }
-                catch (InterruptedException e)
-                {
-                    fail(e.getMessage());
-                }
-            }
-            NucleusLogger.GENERAL.debug(">> Completed threads");
-
-            // Process any errors from Threads and fail the test if any failed
-            for (String error : threadErrors)
-            {
-                if (error != null)
-                {
-                    fail(error);
-                }
-            }
-        }
-        finally
-        {
-            // [Clean up data]
+        final List<TestCallable> tasks = new ArrayList<>();
+        for (int i = 0; i < 10000; i++) {
+            tasks.add(new TestCallable(pmf));
         }
 
-        pmf.close();
-        NucleusLogger.GENERAL.info(">> test END");
+        final List<Future<Void>> futures = es.invokeAll(tasks);
+        for (Future<Void> future : futures) {
+            future.get();
+        }
     }
 
-    /**
-     * Method to perform the test for a Thread.
-     * @param pmf The PersistenceManagerFactory
-     * @return A string which is null if the PM operations are successful
-     */
-    protected String performTest(PersistenceManagerFactory pmf)
-    {
-        PersistenceManager pm = pmf.getPersistenceManager();
-        Transaction tx = pm.currentTransaction();
-        try
-        {
-            tx.begin();
+    private static class TestCallable implements Callable<Void> {
 
-            // [Add persistence code to perform what is needed by this PM]
+        private final PersistenceManagerFactory pmf;
 
-            tx.commit();
+        TestCallable(final PersistenceManagerFactory pmf) {
+            this.pmf = pmf;
         }
-        catch (Throwable thr)
-        {
-            NucleusLogger.GENERAL.error("Exception in test", thr);
-            return "Failed test : " + thr.getMessage();
-        }
-        finally
-        {
-            if (tx.isActive())
-            {
-                tx.rollback();
-            }
+
+        @Override
+        public Void call() {
+            final PersistenceManager pm = pmf.getPersistenceManager();
             pm.close();
+            return null;
         }
-        return null;
+
     }
+
 }
