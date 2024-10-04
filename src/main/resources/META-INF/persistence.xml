@@ -18,6 +18,7 @@
 
             <property name="datanucleus.schema.autoCreateAll" value="true"/>
             <property name="datanucleus.schema.generateDatabase.mode" value="drop-and-create"/>
+            <property name="datanucleus.executioncontext.maxidle" value="1"/>
         </properties>
     </persistence-unit>
 

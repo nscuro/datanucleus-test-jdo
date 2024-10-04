@@ -1,43 +1,30 @@
 package org.datanucleus.test;
 
-import java.util.*;
-import org.junit.*;
-import javax.jdo.*;
-
-import static org.junit.Assert.*;
-import mydomain.model.*;
+import org.datanucleus.PropertyNames;
+import org.datanucleus.api.jdo.JDOPersistenceManager;
+import org.datanucleus.flush.FlushMode;
 import org.datanucleus.util.NucleusLogger;
+import org.junit.Assert;
+import org.junit.Test;
+
+import javax.jdo.JDOHelper;
+import javax.jdo.PersistenceManagerFactory;
 
 public class SimpleTest
 {
     @Test
     public void testSimple()
     {
-        NucleusLogger.GENERAL.info(">> test START");
         PersistenceManagerFactory pmf = JDOHelper.getPersistenceManagerFactory("MyTest");
 
-        PersistenceManager pm = pmf.getPersistenceManager();
-        Transaction tx = pm.currentTransaction();
-        try
-        {
-            tx.begin();
+        try (JDOPersistenceManager pm = (JDOPersistenceManager) pmf.getPersistenceManager()) {
+            Assert.assertNull(pm.getExecutionContext().getFlushMode());
 
-            // [INSERT code here to persist object required for testing]
+            pm.setProperty(PropertyNames.PROPERTY_FLUSH_MODE, FlushMode.MANUAL.name());
+        }
 
-            tx.commit();
-        }
-        catch (Throwable thr)
-        {
-            NucleusLogger.GENERAL.error(">> Exception in test", thr);
-            fail("Failed test : " + thr.getMessage());
-        }
-        finally 
-        {
-            if (tx.isActive())
-            {
-                tx.rollback();
-            }
-            pm.close();
+        try (JDOPersistenceManager pm = (JDOPersistenceManager) pmf.getPersistenceManager()) {
+            Assert.assertNull(pm.getExecutionContext().getFlushMode()); // Fails
         }
 
         pmf.close();
