@@ -10,10 +10,14 @@ public class Person
 
     String name;
 
-    public Person(long id, String name)
+    @Extension(vendorName = "datanucleus", key = "enum-check-constraint", value = "true")
+    Gender gender;
+
+    public Person(long id, String name, Gender gender)
     {
         this.id = id;
         this.name = name;
+        this.gender = gender;
     }
 
     public Long getId()
@@ -25,4 +29,9 @@ public class Person
     {
         return name;
     }
+
+    public Gender getGender() {
+        return gender;
+    }
+
 }
